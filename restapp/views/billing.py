@@ -8,32 +8,25 @@ import logging
 class billingView(FlaskView):
     route_base = '/billing'
 
-    methods = [
-        '95th',
-        'top30',
-    ]
-
-    request_args = [
-        'dev_name',
-        'port_name',
-        'date',
-    ]
+    request_args = {
+        'dev_name': 'must',
+        'port_name': 'must',
+        'month': 'must',
+        'datetype': 'must',
+        'billing_method': 'optional',
+    }
 
     def index(self):
-        return json.dumps({'methods': self.methods})
+        return json.dumps(self.request_args)
 
-    def get(self, method):
+    def get(self):
 
-        if not self.parseGetArgs(method):
+        if not self.parseGetArgs():
             return self.error_str
 
-        return self.calculatePort(method)
+        return self.calculatePort()
 
-    def parseGetArgs(self, method):
-
-        if method not in self.methods:
-            self.error_str = json.dumps({'error':'method error!'})
-            return False
+    def parseGetArgs(self):
 
         where_args = request.args.get('where')
 
@@ -47,18 +40,23 @@ class billingView(FlaskView):
             self.error_str = json.dumps({'error':'request string ' + where_args + ' is not json string'})
             return False
 
-
         try:
             self.dev_name = args_dict['dev_name']
             self.port_name = args_dict['port_name']
             self.month = args_dict['month']
+            self.datetype = args_dict['datetype']
         except:
             self.error_str = json.dumps({'error':'request string keys error'})
             return False
 
+        if 'billling_method' in args_dict:
+            self.billing_method = args_dict['billling_method']
+        else:
+            self.billing_method = None
+
         return True
 
-    def calculatePort(self,method):
+    def calculatePort(self):
         collection_name = self.month + '_' + self.dev_name
         port_data_list = mongo.db[collection_name].find({'ifDescr': self.port_name})
 
@@ -66,14 +64,18 @@ class billingView(FlaskView):
             logging.error("Cannot get data from {} with port {}".format(collection_name,self.port_name ))
             return json.dumps({'data':[],'length':0})
 
-        self.port_billing = portBilling(port_data_list, method)
+        self.port_billing = portBilling(port_data_list, self.datetype, self.billing_method)
 
-        port_result_list = self.port_billing.getPortDataPerDay()
-        for item in port_result_list:
-            print(item)
+        if self.datetype == 'month':
+            result = self.port_billing.getPortDataPerMonth()
 
-        port_result_month = self.port_billing.getPortDataPerMonth()
-        print(port_result_month)
+        elif self.datetype == 'allday':
+            result = self.port_billing.getPortDataPerDay()
 
-        return 'ok'
+        else:
+            result = self.port_billing.getPortDataPerDay(self.datetype)
 
+        if result is not None:
+            return json.dumps({'data': result, 'error': 'false'})
+        else:
+            return json.dumps({'error': 'true'})

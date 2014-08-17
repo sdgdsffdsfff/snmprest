@@ -5,9 +5,11 @@ from restapp.billingmethod import percentile
 
 class portBilling():
     raw_data = []
-    data_list =  []
+    data_list = []
 
-    def __init__(self, port_data, billing_method):
+    def __init__(self, port_data, date_type, billing_method=None):
+
+        self.date_type = date_type
 
         if port_data is None or port_data.count() == 0:
             logging.error('portBilling raw data is empty')
@@ -17,18 +19,26 @@ class portBilling():
                 self.billing_method = billing_method
 
 
-    def getPortDataPerDay(self):
+    def getPortDataPerDay(self, date_type=None):
         if self.raw_data is None:
             logging.error('getPortDataPerDay data is empty')
             return None
 
-        data_result_list = []
+        if date_type is not None:
+            for port_data in self.raw_data:
+                if date_type == port_data['date']:
+                    return self.caculatePort(port_data)
 
-        for port_data in self.raw_data:
-            port_result = self.caculatePort(port_data, self.billing_method)
-            data_result_list.append(port_result)
+            return None
 
-        return data_result_list
+        else:
+            data_result_list = []
+
+            for port_data in self.raw_data:
+                port_result = self.caculatePort(port_data)
+                data_result_list.append(port_result)
+
+            return data_result_list
 
     def getPortDataPerMonth(self):
         if self.raw_data is None:
@@ -39,7 +49,9 @@ class portBilling():
         ifHCOutOctets_month = []
         timeStamp_month = []
 
-        for port_data in self.raw_data:
+        sort_data = sorted(self.raw_data, key=lambda k: k['date'])
+
+        for port_data in sort_data:
             ifHCInOctets_month += port_data['ifHCInOctets']
             ifHCOutOctets_month += port_data['ifHCOutOctets']
             timeStamp_month += port_data['timestamp']
@@ -48,14 +60,14 @@ class portBilling():
             'ifHCInOctets' : ifHCInOctets_month,
             'ifHCOutOctets' : ifHCOutOctets_month,
             'timestamp': timeStamp_month,
-            'date': 'all',
+            'date': 'month',
         }
 
-        port_result = self.caculatePort(port_data_month, self.billing_method)
+        port_result = self.caculatePort(port_data_month)
         return port_result
 
 
-    def caculatePort(self, port_data, billing_method):
+    def caculatePort(self, port_data):
         result = {}
 
         trafficResult = self.parsePortData(port_data)
@@ -63,30 +75,37 @@ class portBilling():
         ifOutList = sorted(trafficResult['ifHCOutOctets'])
 
         result =  {
-            'ifIn_max': ifInList[-1],
+            'ifIn_max': ifInList[-1],   # In 方向最大流量
             'ifOut_max' : ifOutList[-1],
-            'ifIn_min': ifInList[0],
+            'ifIn_min': ifInList[0],    # In 方向最小流量
             'ifOut_min': ifOutList[0],
-            'ifIn_avrg' : int(percentile(ifInList, 0.5)),
+            'ifIn_avrg' : int(percentile(ifInList, 0.5)),   # In 方向平均流量
             'ifOut_avrg' : int(percentile(ifOutList, 0.5)),
-            'date': port_data['date']
+            'ifIn_total' : trafficResult['ifInTotal'],  # In 方向总流量
+            'ifOut_total' : trafficResult['ifOutTotal'],
+            'ifIn_data' : trafficResult['ifHCInOctets'],    # In 方向详细数据
+            'ifOut_data' : trafficResult['ifHCOutOctets'],
+            'timeStamp' : trafficResult['timeStamp'],   # 时间戳
+            'date_type': port_data['date'], # 日期戳
         }
 
-        if billing_method == '95th':
-            result['ifIn_95th'] = int(percentile(ifInList, 0.95))
-            result['ifOut_95th'] = int(percentile(ifOutList, 0.95))
+        if self.billing_method == '95th':
+            result['95th']['ifIn'] = int(percentile(ifInList, 0.95))
+            result['95th']['ifOut'] = int(percentile(ifOutList, 0.95))
 
         return result
 
     def parsePortData(self, port_data):
-        ifHCInOctets = self.countTraffic(port_data['ifHCInOctets'], port_data['timestamp'])
-        ifHCOutOctets = self.countTraffic(port_data['ifHCOutOctets'], port_data['timestamp'])
+        ifHCInOctets, ifInTrafficTotal = self.countTraffic(port_data['ifHCInOctets'], port_data['timestamp'])
+        ifHCOutOctets, ifOutTrafficTotal = self.countTraffic(port_data['ifHCOutOctets'], port_data['timestamp'])
         timeStamp = port_data['timestamp'][1:]
 
         result = {
             'ifHCInOctets' : ifHCInOctets,
             'ifHCOutOctets' : ifHCOutOctets,
-            'timeStamp': timeStamp
+            'timeStamp': timeStamp,
+            'ifInTotal': ifInTrafficTotal,
+            'ifOutTotal': ifOutTrafficTotal,
         }
 
         return result
@@ -99,6 +118,8 @@ class portBilling():
 
         trafficList = []
 
+        trafficTotal = 0
+
         for i in range(1, len(trafficData) ):
             trafficNow = int(trafficData[i])
             trafficLast = int(trafficData[i-1])
@@ -106,6 +127,7 @@ class portBilling():
 
             if trafficNow - trafficLast >= 0:
                 # diffTraffic is in Byte unit so need to * 8 and / time interval
+                trafficTotal += (trafficNow -  trafficLast) * 8
                 trafficResult = (trafficNow -  trafficLast) * 8 / diffTime
                 trafficList.append(int(trafficResult))
             else:
@@ -116,7 +138,8 @@ class portBilling():
                 else:
                     max_traffic = math.pow(2,32)
 
+                trafficTotal += (max_traffic - trafficLast + trafficNow) * 8
                 trafficResult = (max_traffic - trafficLast + trafficNow) * 8 / diffTime
                 trafficList.append(int(trafficResult))
 
-        return trafficList
+        return trafficList, trafficTotal
