@@ -4,16 +4,22 @@ import math
 from restapp.billingmethod import percentile
 
 class portBilling():
+    raw_data = []
     data_list =  []
 
     def __init__(self, port_data, billing_method):
-        self.raw_data = port_data
-        self.billing_method = billing_method
+
+        if port_data is None or port_data.count() == 0:
+            logging.error('portBilling raw data is empty')
+        else:
+            for data_items in port_data:
+                self.raw_data.append(data_items)
+                self.billing_method = billing_method
 
 
     def getPortDataPerDay(self):
-        if self.raw_data is None or self.raw_data.count() == 0:
-            logging.error('raw data is empty')
+        if self.raw_data is None:
+            logging.error('getPortDataPerDay data is empty')
             return None
 
         data_result_list = []
@@ -25,7 +31,7 @@ class portBilling():
         return data_result_list
 
     def getPortDataPerMonth(self):
-        if self.raw_data is None or self.raw_data.count() == 0:
+        if self.raw_data is None:
             logging.error('getPortDataPerMonth data is empty')
             return None
 
