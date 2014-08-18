@@ -1,3 +1,4 @@
+#!/home/jyyl/env/rest/bin/python
 #coding: utf-8
 from restapp import restApp
 
