@@ -12,7 +12,12 @@ class devicesView(FlaskView):
 
         if devices_rows is not None:
             for item in devices_rows:
-                devices_list.append(item['dev_name'])
+                try:
+                    del item['community']
+                    del item['_id']
+                except:
+                    pass
+                devices_list.append(item)
 
             return json.dumps({'data': devices_list, 'error': 'false'})
         else:
