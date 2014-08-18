@@ -17,7 +17,7 @@ class billingView(FlaskView):
     }
 
     def index(self):
-        return json.dumps(self.request_args)
+        return json.dumps({'error':'false', 'data':self.request_args})
 
     def get(self):
 
@@ -31,13 +31,13 @@ class billingView(FlaskView):
         where_args = request.args.get('where')
 
         if where_args is None:
-            self.error_str = json.dumps({'error':'request not contain "where" keyword !'})
+            self.error_str = json.dumps({'error':'true','errormsg':'request not contain "where" keyword !'})
             return False
 
         try:
             args_dict = json.loads(where_args.replace("'", "\""))
         except:
-            self.error_str = json.dumps({'error':'request string ' + where_args + ' is not json string'})
+            self.error_str = json.dumps({'error':'true','errormsg':'request string ' + where_args + ' is not json string'})
             return False
 
         try:
@@ -46,7 +46,7 @@ class billingView(FlaskView):
             self.month = args_dict['month']
             self.datetype = args_dict['datetype']
         except:
-            self.error_str = json.dumps({'error':'request string keys error'})
+            self.error_str = json.dumps({'error':'true','errormsg':'request string keys error'})
             return False
 
         if 'billling_method' in args_dict:
@@ -78,4 +78,4 @@ class billingView(FlaskView):
         if result is not None:
             return json.dumps({'data': result, 'error': 'false'})
         else:
-            return json.dumps({'error': 'true'})
+            return json.dumps({'error': 'true', 'data': []})
