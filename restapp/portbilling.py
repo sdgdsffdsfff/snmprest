@@ -11,6 +11,9 @@ class portBilling():
 
         self.date_type = date_type
 
+        # important! clear raw_data[] before use
+        self.raw_data = []
+
         if port_data is None or port_data.count() == 0:
             logging.error('portBilling raw data is empty')
         else:
