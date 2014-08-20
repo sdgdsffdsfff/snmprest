@@ -66,13 +66,20 @@ class billingView(FlaskView):
 
         self.port_billing = portBilling(port_data_list, self.datetype, self.billing_method)
 
+        result = None
+
+        if self.datetype == 'all':
+            month_result = self.port_billing.getPortDataPerMonth()
+            day_result = self.port_billing.getPortDataPerDay()
+            result = { 'month': month_result, 'allday': day_result }
+
         if self.datetype == 'month':
             result = self.port_billing.getPortDataPerMonth()
 
-        elif self.datetype == 'allday':
+        if self.datetype == 'allday':
             result = self.port_billing.getPortDataPerDay()
 
-        else:
+        if self.datetype == 'day':
             result = self.port_billing.getPortDataPerDay(self.datetype)
 
         if result is not None:
