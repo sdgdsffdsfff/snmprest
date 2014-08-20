@@ -93,8 +93,8 @@ class portBilling():
         }
 
         if self.billing_method == '95th':
-            result['95th']['ifIn'] = int(percentile(ifInList, 0.95))
-            result['95th']['ifOut'] = int(percentile(ifOutList, 0.95))
+            result['ifIn_95th'] = int(percentile(ifInList, 0.95))
+            result['ifOut_95th'] = int(percentile(ifOutList, 0.95))
 
         return result
 
