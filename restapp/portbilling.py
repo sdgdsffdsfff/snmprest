@@ -7,9 +7,7 @@ class portBilling():
     raw_data = []
     data_list = []
 
-    def __init__(self, port_data, date_type, billing_method=None):
-
-        self.date_type = date_type
+    def __init__(self, port_data, billing_method=None):
 
         # important! clear raw_data[] before use
         self.raw_data = []
@@ -71,7 +69,6 @@ class portBilling():
 
 
     def caculatePort(self, port_data):
-        result = {}
 
         trafficResult = self.parsePortData(port_data)
         ifInList = sorted(trafficResult['ifHCInOctets'])
@@ -92,9 +89,15 @@ class portBilling():
             'date_type': port_data['date'], # 日期戳
         }
 
+        result['report_avrg'] = self.trans(result['ifIn_avrg']) + ' / ' + self.trans(result['ifOut_avrg'])
+        result['report_max'] = self.trans(result['ifIn_max']) + ' / ' + self.trans(result['ifOut_max'])
+        result['report_min'] = self.trans(result['ifIn_min']) + ' / ' + self.trans(result['ifOut_min'])
+
         if self.billing_method == '95th':
             result['ifIn_95th'] = int(percentile(ifInList, 0.95))
             result['ifOut_95th'] = int(percentile(ifOutList, 0.95))
+            result['report_95th'] = self.trans(result['ifIn_95th']) + ' / ' + self.trans(result['ifOut_95th'])
+            result['report_billing'] = result['report_95th']
 
         return result
 
@@ -114,6 +117,9 @@ class portBilling():
         return result
 
     def countTraffic(self, trafficData, timeData):
+        '''
+        count SNMP ifHCInOctets / ifHCOutOctets to traffic data per 5 min
+        '''
 
         if len(trafficData) <= 1 or len(trafficData) != len(timeData):
             logging.error('countTraffic params error!')
@@ -146,3 +152,33 @@ class portBilling():
                 trafficList.append(int(trafficResult))
 
         return trafficList, trafficTotal
+
+
+    def trans(self, value):
+        '''
+        trans port speed to human readable value
+        :param value: port speed
+        :return: transfer port speed like 1bps, 1kb, 1Mb, 1Gb
+        '''
+
+        speed_str = ''
+
+        if value < 1000:
+            speed_str += str(value)
+            speed_str += ' bps'
+            return speed_str
+
+        if value < math.pow(1000,2):
+            speed_str += str(round((value / 1000), 1))
+            speed_str += ' kb'
+            return speed_str
+
+        if value < math.pow(1000,3):
+            speed_str += str(round((value / math.pow(1000,2)), 1))
+            speed_str += ' Mb'
+            return speed_str
+
+
+        speed_str += str(round((value / math.pow(1000,3)), 1))
+        speed_str += ' Gb'
+        return speed_str

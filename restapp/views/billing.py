@@ -64,7 +64,7 @@ class billingView(FlaskView):
             logging.error("Cannot get data from {} with port {}".format(collection_name,self.port_name ))
             return json.dumps({'data':[],'length':0})
 
-        self.port_billing = portBilling(port_data_list, self.datetype, self.billing_method)
+        self.port_billing = portBilling(port_data_list, self.billing_method)
 
         result = None
 
@@ -73,13 +73,14 @@ class billingView(FlaskView):
             day_result = self.port_billing.getPortDataPerDay()
             result = { 'month': month_result, 'allday': day_result }
 
-        if self.datetype == 'month':
+        elif self.datetype == 'month':
             result = self.port_billing.getPortDataPerMonth()
 
-        if self.datetype == 'allday':
+        elif self.datetype == 'allday':
             result = self.port_billing.getPortDataPerDay()
 
-        if self.datetype == 'day':
+        # self.datetype is like 20140801
+        else:
             result = self.port_billing.getPortDataPerDay(self.datetype)
 
         if result is not None:
