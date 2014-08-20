@@ -49,8 +49,8 @@ class billingView(FlaskView):
             self.error_str = json.dumps({'error':'true','errormsg':'request string keys error'})
             return False
 
-        if 'billling_method' in args_dict:
-            self.billing_method = args_dict['billling_method']
+        if 'billing_method' in args_dict:
+            self.billing_method = args_dict['billing_method']
         else:
             self.billing_method = None
 
