@@ -1,7 +1,8 @@
-#condig: utf-8
+# condig: utf-8
 import logging
 import math
 from restapp.billingmethod import percentile
+
 
 class portBilling():
     raw_data = []
@@ -18,7 +19,6 @@ class portBilling():
             for data_items in port_data:
                 self.raw_data.append(data_items)
                 self.billing_method = billing_method
-
 
     def getPortDataPerDay(self, date_type=None):
         if self.raw_data is None:
@@ -58,8 +58,8 @@ class portBilling():
             timeStamp_month += port_data['timestamp']
 
         port_data_month = {
-            'ifHCInOctets' : ifHCInOctets_month,
-            'ifHCOutOctets' : ifHCOutOctets_month,
+            'ifHCInOctets': ifHCInOctets_month,
+            'ifHCOutOctets': ifHCOutOctets_month,
             'timestamp': timeStamp_month,
             'date': 'month',
         }
@@ -67,26 +67,25 @@ class portBilling():
         port_result = self.caculatePort(port_data_month)
         return port_result
 
-
     def caculatePort(self, port_data):
 
         trafficResult = self.parsePortData(port_data)
         ifInList = sorted(trafficResult['ifHCInOctets'])
         ifOutList = sorted(trafficResult['ifHCOutOctets'])
 
-        result =  {
+        result = {
             'ifIn_max': ifInList[-1],   # In 方向最大流量
-            'ifOut_max' : ifOutList[-1],
+            'ifOut_max': ifOutList[-1],
             'ifIn_min': ifInList[0],    # In 方向最小流量
             'ifOut_min': ifOutList[0],
-            'ifIn_avrg' : int(percentile(ifInList, 0.5)),   # In 方向平均流量
-            'ifOut_avrg' : int(percentile(ifOutList, 0.5)),
-            'ifIn_total' : trafficResult['ifInTotal'],  # In 方向总流量
-            'ifOut_total' : trafficResult['ifOutTotal'],
-            'ifIn_data' : trafficResult['ifHCInOctets'],    # In 方向详细数据
-            'ifOut_data' : trafficResult['ifHCOutOctets'],
-            'timeStamp' : trafficResult['timeStamp'],   # 时间戳
-            'date_type': port_data['date'], # 日期戳
+            'ifIn_avrg': int(percentile(ifInList, 0.5)),   # In 方向平均流量
+            'ifOut_avrg': int(percentile(ifOutList, 0.5)),
+            'ifIn_total': trafficResult['ifInTotal'],  # In 方向总流量
+            'ifOut_total': trafficResult['ifOutTotal'],
+            'ifIn_data': trafficResult['ifHCInOctets'],    # In 方向详细数据
+            'ifOut_data': trafficResult['ifHCOutOctets'],
+            'timeStamp': trafficResult['timeStamp'],   # 时间戳
+            'date_type': port_data['date'],  # 日期戳
         }
 
         result['report_avrg'] = self.trans(result['ifIn_avrg']) + ' / ' + self.trans(result['ifOut_avrg'])
@@ -107,8 +106,8 @@ class portBilling():
         timeStamp = port_data['timestamp'][1:]
 
         result = {
-            'ifHCInOctets' : ifHCInOctets,
-            'ifHCOutOctets' : ifHCOutOctets,
+            'ifHCInOctets': ifHCInOctets,
+            'ifHCOutOctets': ifHCOutOctets,
             'timeStamp': timeStamp,
             'ifInTotal': ifInTrafficTotal,
             'ifOutTotal': ifOutTrafficTotal,
@@ -129,30 +128,29 @@ class portBilling():
 
         trafficTotal = 0
 
-        for i in range(1, len(trafficData) ):
+        for i in range(1, len(trafficData)):
             trafficNow = int(trafficData[i])
-            trafficLast = int(trafficData[i-1])
-            diffTime = int(timeData[i]) - int(timeData[i-1])
+            trafficLast = int(trafficData[i - 1])
+            diffTime = int(timeData[i]) - int(timeData[i - 1])
 
             if trafficNow - trafficLast >= 0:
                 # diffTraffic is in Byte unit so need to * 8 and / time interval
-                trafficTotal += (trafficNow -  trafficLast) * 8
-                trafficResult = (trafficNow -  trafficLast) * 8 / diffTime
+                trafficTotal += (trafficNow - trafficLast) * 8
+                trafficResult = (trafficNow - trafficLast) * 8 / diffTime
                 trafficList.append(int(trafficResult))
             else:
                 # If traffic data is overflow here
                 # Check it's 32 bit traffic or 64 bit traffic
-                if trafficLast > math.pow(2,32):
-                    max_traffic =  math.pow(2, 64)
+                if trafficLast > math.pow(2, 32):
+                    max_traffic = math.pow(2, 64)
                 else:
-                    max_traffic = math.pow(2,32)
+                    max_traffic = math.pow(2, 32)
 
                 trafficTotal += (max_traffic - trafficLast + trafficNow) * 8
                 trafficResult = (max_traffic - trafficLast + trafficNow) * 8 / diffTime
                 trafficList.append(int(trafficResult))
 
         return trafficList, trafficTotal
-
 
     def trans(self, value):
         '''
@@ -168,17 +166,16 @@ class portBilling():
             speed_str += ' bps'
             return speed_str
 
-        if value < math.pow(1000,2):
+        if value < math.pow(1000, 2):
             speed_str += str(round((value / 1000), 1))
             speed_str += ' kb'
             return speed_str
 
-        if value < math.pow(1000,3):
-            speed_str += str(round((value / math.pow(1000,2)), 1))
+        if value < math.pow(1000, 3):
+            speed_str += str(round((value / math.pow(1000, 2)), 1))
             speed_str += ' Mb'
             return speed_str
 
-
-        speed_str += str(round((value / math.pow(1000,3)), 1))
+        speed_str += str(round((value / math.pow(1000, 3)), 1))
         speed_str += ' Gb'
         return speed_str

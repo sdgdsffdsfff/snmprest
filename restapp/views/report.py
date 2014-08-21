@@ -5,6 +5,7 @@ from restapp.portbilling import portBilling
 from flask import request, make_response
 import logging
 
+
 class reportView(FlaskView):
     route_base = '/report'
 
@@ -15,8 +16,10 @@ class reportView(FlaskView):
         'billing_method': 'must',
     }
 
+    port_list = []
+
     def index(self):
-        return json.dumps({'error':'false', 'data':self.request_args})
+        return json.dumps({'error': 'false', 'data': self.request_args})
 
     def post(self):
 
@@ -24,11 +27,11 @@ class reportView(FlaskView):
             return None
 
         # self.port_list = [
-        #     {'dev_name':'s9312-254',
-        #      'port_name':'Ethernet2/0/0',
+        #     {'dev_name': 's9312-254',
+        #      'port_name': 'Ethernet2/0/0',
         #      'month': '201408',
         #      'billing_method': '95th',
-        #     },
+        #      },
         # ]
 
         csv_data = self.generatePortReportList()
@@ -44,7 +47,15 @@ class reportView(FlaskView):
 
     def parseGetArgs(self):
         try:
-            self.port_list = request.form['port_list']
+            self.port_list = []
+
+            for item in request.form:
+                port_list = json.loads(item)
+
+                if port_list is not None:
+                    # print(port_list['port_list[]'])
+                    self.port_list = self.port_list + port_list['port_list[]']
+
         except:
             logging.error('Request param error!')
             return False
@@ -60,13 +71,12 @@ class reportView(FlaskView):
 
         return csv_string
 
-
     def generatePortReport(self, port_args, csv_split=','):
         collection_name = port_args['month'] + '_' + port_args['dev_name']
         port_data_list = mongo.db[collection_name].find({'ifDescr': port_args['port_name']})
 
         if port_data_list.count() == 0:
-            logging.error("Cannot get data from {} with port {}".format(collection_name,port_args['port_name'] ))
+            logging.error("Cannot get data from {} with port {}".format(collection_name, port_args['port_name']))
             return None
 
         port_billing = portBilling(port_data_list, port_args['billing_method'])
@@ -79,19 +89,19 @@ class reportView(FlaskView):
 
         # CSV报表的基本信息
         csv_string = ''
-        csv_string += csv_split.join(['设备名称:',port_args['dev_name']])
+        csv_string += csv_split.join(['设备名称:', port_args['dev_name']])
         csv_string += '\n'
-        csv_string += csv_split.join(['端口名称:',port_args['port_name']])
+        csv_string += csv_split.join(['端口名称:', port_args['port_name']])
         csv_string += '\n'
         csv_string += csv_split.join(['计费时间段:', port_args['month']])
         csv_string += '\n'
 
         # CSV报表的计费信息表示 和 当月统计值
-        date_list = ['', '总计']
+        date_list = ['', '月度']
         billing_list = ['计费 (95th)', month_result['report_billing']]
         avrg_list = ['平均值 (In/Out)', month_result['report_avrg']]
         max_list = ['最大值 (In/Out)', month_result['report_max']]
-        min_list = ['最小值 (In/Out)',  month_result['report_min']]
+        min_list = ['最小值 (In/Out)', month_result['report_min']]
 
         # CSV报表的每日详细信息
         for port_item in day_result:
@@ -100,7 +110,6 @@ class reportView(FlaskView):
             avrg_list.append(port_item['report_avrg'])
             max_list.append(port_item['report_max'])
             min_list.append(port_item['report_min'])
-
 
         # CSV的详细计费字段
         csv_string += '\n'
@@ -115,4 +124,5 @@ class reportView(FlaskView):
         csv_string += csv_split.join(min_list)
         csv_string += '\n'
 
+        # print(csv_string)
         return csv_string
