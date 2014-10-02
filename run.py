@@ -1,4 +1,4 @@
-#!/home/jyyl/env/rest/bin/python
+#!/home/jyyl/env/flask/bin/python
 #coding: utf-8
 from restapp import restApp
 
