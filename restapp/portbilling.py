@@ -128,26 +128,21 @@ class portBilling():
 
         trafficTotal = 0
 
+        max_traffic_data = max(trafficData)
+
         for i in range(1, len(trafficData)):
             trafficNow = int(trafficData[i])
             trafficLast = int(trafficData[i - 1])
             diffTime = int(timeData[i]) - int(timeData[i - 1])
 
-            if trafficNow - trafficLast >= 0:
+            if trafficNow - trafficLast > 0:
                 # diffTraffic is in Byte unit so need to * 8 and / time interval
                 trafficTotal += (trafficNow - trafficLast) * 8
                 trafficResult = (trafficNow - trafficLast) * 8 / diffTime
                 trafficList.append(int(trafficResult))
             else:
-                # If traffic data is overflow here
-                # Check it's 32 bit traffic or 64 bit traffic
-                if trafficLast > math.pow(2, 32):
-                    max_traffic = math.pow(2, 64)
-                else:
-                    max_traffic = math.pow(2, 32)
-
-                trafficTotal += (max_traffic - trafficLast + trafficNow) * 8
-                trafficResult = (max_traffic - trafficLast + trafficNow) * 8 / diffTime
+                trafficTotal += trafficNow * 8
+                trafficResult = trafficNow * 8 / diffTime
                 trafficList.append(int(trafficResult))
 
         return trafficList, trafficTotal
