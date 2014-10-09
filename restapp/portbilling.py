@@ -135,7 +135,7 @@ class portBilling():
             trafficLast = int(trafficData[i - 1])
             diffTime = int(timeData[i]) - int(timeData[i - 1])
 
-            if trafficNow - trafficLast > 0:
+            if trafficNow - trafficLast >= 0:
                 # diffTraffic is in Byte unit so need to * 8 and / time interval
                 trafficTotal += (trafficNow - trafficLast) * 8
                 trafficResult = (trafficNow - trafficLast) * 8 / diffTime
